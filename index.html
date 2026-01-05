@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>库存管理系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>库存管理系统</h1>
+            <p>扫码扣除库存量</p>
+        </header>
+
+        <main>
+            <!-- 任务管理区域 -->
+            <section class="task-section">
+                <div class="card">
+                    <h2>任务管理</h2>
+                    <div class="task-controls">
+                        <div class="task-select">
+                            <label for="taskSelect">选择任务:</label>
+                            <select id="taskSelect" class="task-select-input">
+                                <option value="">-- 请选择任务 --</option>
+                            </select>
+                            <button id="taskLockBtn" class="btn btn-lock" title="锁定/解锁任务">
+                                <span class="lock-icon">🔒</span>
+                            </button>
+                        </div>
+                        <div class="new-task">
+                            <input type="text" id="newTaskName" placeholder="新任务名称" class="new-task-input">
+                            <button id="createTaskBtn" class="btn btn-primary">创建新任务</button>
+                        </div>
+                    </div>
+                    <div class="task-info" id="taskInfo"></div>
+                </div>
+            </section>
+
+            <!-- 文件导入区域 -->
+            <section class="import-section">
+                <div class="card">
+                    <h2>导入库存数据</h2>
+                    <div class="file-upload">
+                        <input type="file" id="fileInput" accept=".xlsx, .xls" class="file-input"> 
+                        <label for="fileInput" class="file-label">
+                            <span class="icon">📁</span>
+                            <span>选择Excel文件</span>
+                        </label>
+                        <p id="fileInfo" class="file-info"></p>
+                    </div>
+                    <div class="template-download">
+                        <a href="查库存.xlsx" download="查库存模板.xlsx" class="btn btn-secondary">
+                            <span class="icon">📥</span>
+                            <span>下载Excel模板</span>
+                        </a>
+                    </div>
+                    <div class="inventory-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">总商品数:</span>
+                            <span id="totalItems" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 商品类型管理区域 -->
+            <section class="types-section">
+                <div class="card">
+                    <h2>商品类型(默认锁定解锁需要点击 🔒)</h2>
+                    <div class="types-controls">
+                        <div class="type-selection">
+                            <div class="type-selection-header">
+                                <h3>(该选项勾选的商品类型 在扣除的时候 默认自动确认扣除1个，反之需要手动输入数量)</h3>
+                                <button id="typesLockBtn" class="btn btn-lock" title="锁定/解锁商品类型">
+                                    <span class="lock-icon">🔒</span>
+                                </button>
+                            </div>
+                            <div class="type-select-container" id="typeSelectContainer">
+                                <p style="text-align:center;color:var(--text-secondary);padding:2rem;">请先选择一个任务，然后选择商品类型</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="types-list" id="typesList">
+                        <h3>已设置默认扣除的商品类型</h3>
+                        <p style="text-align:center;color:var(--text-secondary);padding:2rem;">暂无默认扣除的商品类型</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 扫码区域 -->
+            <section class="scan-section">
+                <div class="card">
+                    <h2>扫码操作</h2>
+                    <div class="scan-area">
+                        <div class="scan-input-container">
+                            <input type="text" id="barcodeInput" placeholder="使用扫码枪扫描条形码" class="scan-input">
+                            <div class="scan-status" id="scanStatus">
+                                <span class="status-dot"></span>
+                                <span>等待扫码</span>
+                            </div>
+                        </div>
+                        <div class="last-scan" id="lastScan"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 日志区域 -->
+            <section class="log-section">
+                <div class="card">
+                    <h2>操作日志</h2>
+                    <div class="log-container">
+                        <div id="logList" class="log-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 库存列表 -->
+            <section class="inventory-section">
+                <div class="card">
+                    <h2>库存列表</h2>
+                    <div class="inventory-table-container">
+                        <table id="inventoryTable" class="inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th>条码</th>
+                                        <th>商品名称</th>
+                                        <th>库存量</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryBody">
+                                </tbody>
+                            </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 累计扣除列表 -->
+            <section class="inventory-section">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>累计扣除</h2>
+                        <div>
+                            <button id="exportDeductionBtn" class="btn btn-primary" style="margin-left: 1rem;">导出完整日志</button>
+                            <button id="exportUnscannedBtn" class="btn btn-secondary" style="margin-left: 0.5rem;">导出未盘点产品</button>
+                        </div>
+                    </div>
+                    <div class="inventory-table-container">
+                        <table id="deductionTable" class="inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th>条码</th>
+                                        <th>商品名称</th>
+                                        <th>累计扣除数量</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deductionBody">
+                                </tbody>
+                            </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 引入JavaScript文件 -->
+    <script src="script.js"></script>
+    
+    <!-- 彩蛋功能：按键组合触发特殊效果 -->
+    <script>
+        // 大白话注释：这是一个隐藏彩蛋功能，按特定按键组合会显示特殊信息
+        let keyPressCount = 0;
+        const requiredKeys = ['d', 'e', 'v']; // 需要按 dev
+        let currentSequence = [];
+
+        document.addEventListener('keydown', function(e) {
+            // 只处理字母键
+            if (e.key.length === 1 && e.key.match(/[a-z]/i)) {
+                currentSequence.push(e.key.toLowerCase());
+                
+                // 保持序列长度不超过需要的长度
+                if (currentSequence.length > requiredKeys.length) {
+                    currentSequence.shift();
+                }
+                
+                // 检查是否匹配序列
+                if (currentSequence.join('') === requiredKeys.join('')) {
+                    // 显示彩蛋信息
+                    console.log('🎉 恭喜发现隐藏彩蛋！');
+                    console.log('🐰 小兔子偷偷告诉你：你是个开发者！');
+                    console.log('💡 按下 F12 查看更多惊喜！');
+                    console.log('💬 开发者微信：15127988973');
+                    
+                    // 重置序列
+                    currentSequence = [];
+                    
+                    // 增加计数器，每触发3次显示一次大彩蛋
+                    keyPressCount++;
+                    if (keyPressCount % 3 === 0) {
+                        // 在控制台显示字符艺术
+                        if (typeof showFrontendEasterEggs === 'function') {
+                            showFrontendEasterEggs();
+                        }
+                    }
+                }
+            } else {
+                // 如果按的不是字母，清空序列
+                currentSequence = [];
+            }
+        });
+        
+        // 页面加载完成后显示欢迎信息
+        window.addEventListener('load', function() {
+            console.log('✨ 欢迎使用盘库管理系统！');
+            console.log('💡 按 "d" + "e" + "v" 组合键可以触发隐藏彩蛋！');
+            console.log('💬 开发者微信：15127988973');
+        });
+    </script>
+</body>
+</html>

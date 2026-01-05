@@ -176,3 +176,5 @@ npm install --registry https://registry.npmmirror.com
 - v1.2: 添加多种导出功能
 - v1.3: 添加模板下载功能
 - v1.4: 优化性能，修复导出记录限制问题
+
+##作者微信：15127988973
